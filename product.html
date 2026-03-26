@@ -13,12 +13,20 @@
   <div class="page-shell detail-shell">
     <header class="detail-header">
       <a class="back-link" href="index.html">Back to search</a>
-      <p class="eyebrow">Product details</p>
+      <div class="detail-header-actions">
+        <p class="eyebrow">Product details</p>
+        <a class="app-link" id="open-in-app-detail" href="https://noorulh.onelink.me/d28T">Open in app</a>
+      </div>
     </header>
 
     <main id="product-detail" class="detail-card" aria-live="polite"></main>
   </div>
 
+  <script>
+    !function(t,e,n,s,a,c,i,o,p){t.AppsFlyerSdkObject=a,t.AF=t.AF||function(){(t.AF.q=t.AF.q||[]).push([Date.now()].concat(Array.prototype.slice.call(arguments)))},t.AF.id=t.AF.id||i,t.AF.plugins={},o=e.createElement(n),p=e.getElementsByTagName(n)[0],o.async=1,o.src="https://websdk.appsflyersdk.com?"+(c.length>0?"st="+c.split(",").sort().join(",")+"&":"")+(i.length>0?"af_id="+i:""),p.parentNode.insertBefore(o,p)}(window,document,"script",0,"AF","banners",{banners: {key: "7b328ed2-de5b-42d7-9e5d-f75fc31e3854"}});
+    AF('banners', 'showBanner');
+  </script>
+  <script src="https://onelinksmartscript.appsflyersdk.com/onelink-smart-script-latest.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

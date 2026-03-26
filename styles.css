@@ -113,11 +113,26 @@ input {
 }
 
 .top-link,
+.app-link,
 .back-link {
   padding: 12px 18px;
   border-radius: 999px;
   background: #fff;
   border: 1px solid var(--line);
+}
+
+.top-actions,
+.detail-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-link {
+  background: var(--accent);
+  color: #fff;
+  border-color: transparent;
+  font-weight: 700;
 }
 
 .hero-grid {
@@ -371,6 +386,8 @@ input {
   .section-head,
   .detail-grid,
   .detail-header,
+  .top-actions,
+  .detail-header-actions,
   .product-footer,
   .detail-top,
   .detail-facts {

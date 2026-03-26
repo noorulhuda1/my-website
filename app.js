@@ -3,7 +3,7 @@ const products = [
     id: "apple",
     name: "Organic Apple",
     category: "fruits",
-    price: "$3.20",
+    price: "INR 260",
     emoji: "🍎",
     unit: "1 kg pack",
     stock: "In stock",
@@ -13,7 +13,7 @@ const products = [
     id: "banana",
     name: "Banana Bunch",
     category: "fruits",
-    price: "$2.40",
+    price: "INR 190",
     emoji: "🍌",
     unit: "6 bananas",
     stock: "In stock",
@@ -23,7 +23,7 @@ const products = [
     id: "orange",
     name: "Fresh Orange",
     category: "fruits",
-    price: "$4.10",
+    price: "INR 330",
     emoji: "🍊",
     unit: "1 kg pack",
     stock: "Low stock",
@@ -33,7 +33,7 @@ const products = [
     id: "tomato",
     name: "Red Tomato",
     category: "vegetables",
-    price: "$2.90",
+    price: "INR 230",
     emoji: "🍅",
     unit: "1 kg pack",
     stock: "In stock",
@@ -43,7 +43,7 @@ const products = [
     id: "carrot",
     name: "Crunchy Carrot",
     category: "vegetables",
-    price: "$2.30",
+    price: "INR 180",
     emoji: "🥕",
     unit: "500 g pack",
     stock: "In stock",
@@ -53,7 +53,7 @@ const products = [
     id: "spinach",
     name: "Baby Spinach",
     category: "vegetables",
-    price: "$3.00",
+    price: "INR 140",
     emoji: "🥬",
     unit: "250 g pack",
     stock: "In stock",
@@ -63,7 +63,7 @@ const products = [
     id: "water",
     name: "Mineral Water",
     category: "water",
-    price: "$1.50",
+    price: "INR 40",
     emoji: "💧",
     unit: "1 litre bottle",
     stock: "In stock",
@@ -73,7 +73,7 @@ const products = [
     id: "sparkling-water",
     name: "Sparkling Water",
     category: "water",
-    price: "$1.90",
+    price: "INR 70",
     emoji: "🫧",
     unit: "750 ml bottle",
     stock: "In stock",
@@ -83,7 +83,7 @@ const products = [
     id: "milk",
     name: "Farm Fresh Milk",
     category: "dairy",
-    price: "$2.70",
+    price: "INR 85",
     emoji: "🥛",
     unit: "1 litre carton",
     stock: "In stock",
@@ -92,6 +92,7 @@ const products = [
 ];
 
 const page = document.body.dataset.page;
+const defaultOneLinkUrl = "https://noorulh.onelink.me/d28T";
 
 if (page === "home") {
   setupHomePage();
@@ -100,6 +101,8 @@ if (page === "home") {
 if (page === "detail") {
   setupDetailPage();
 }
+
+initializeAppsFlyerLinks();
 
 function setupHomePage() {
   const form = document.querySelector("#search-form");
@@ -223,4 +226,72 @@ function renderProductCard(product) {
 
 function capitalize(value) {
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function initializeAppsFlyerLinks() {
+  const appLinks = document.querySelectorAll(".app-link");
+  const fallbackUrl = appendCurrentProduct(defaultOneLinkUrl);
+
+  appLinks.forEach((link) => {
+    link.href = fallbackUrl;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+  });
+
+  if (!window.AF_SMART_SCRIPT || typeof window.AF_SMART_SCRIPT.generateOneLinkURL !== "function") {
+    return;
+  }
+
+  const mediaSource = { keys: ["utm_source"], defaultValue: "default" };
+  const campaignCode = { paramKey: "campaign_code", keys: ["campaign_code"], defaultValue: "default" };
+  const afAdsetId = { paramKey: "af_adsetid", keys: ["utm_adsetid"] };
+  const forceDeepLink = { paramKey: "af_force_deeplink", defaultValue: "true" };
+  const customSsUi = { paramKey: "af_ss_ui", defaultValue: "true" };
+  const productDeepLink = {
+    paramKey: "deep_link_value",
+    defaultValue: page === "detail" ? "product-detail" : "home"
+  };
+  const selectedProduct = getSelectedProductId();
+  const productParam = selectedProduct
+    ? { paramKey: "af_sub1", defaultValue: selectedProduct }
+    : null;
+
+  const result = window.AF_SMART_SCRIPT.generateOneLinkURL({
+    oneLinkURL: defaultOneLinkUrl,
+    afParameters: {
+      mediaSource,
+      afCustom: [
+        campaignCode,
+        afAdsetId,
+        forceDeepLink,
+        customSsUi,
+        productDeepLink,
+        productParam
+      ].filter(Boolean)
+    }
+  });
+
+  if (!result || !result.clickURL) {
+    return;
+  }
+
+  const openInAppUrl = appendCurrentProduct(result.clickURL);
+  appLinks.forEach((link) => {
+    link.href = openInAppUrl;
+  });
+}
+
+function getSelectedProductId() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("id");
+}
+
+function appendCurrentProduct(url) {
+  const productId = getSelectedProductId();
+  if (!productId) {
+    return url;
+  }
+
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}product_id=${encodeURIComponent(productId)}`;
 }
