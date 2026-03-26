@@ -93,6 +93,7 @@ const products = [
 
 const page = document.body.dataset.page;
 const defaultOneLinkUrl = "https://noorulh.onelink.me/d28T";
+const appsflyerS2SEndpoint = window.FRESH_BASKET_CONFIG?.appsflyerS2SEndpoint || "";
 
 if (page === "home") {
   setupHomePage();
@@ -103,6 +104,7 @@ if (page === "detail") {
 }
 
 initializeAppsFlyerLinks();
+rememberIdentityFromUrl();
 
 function setupHomePage() {
   const form = document.querySelector("#search-form");
@@ -120,6 +122,11 @@ function setupHomePage() {
     activeQuery = input.value.trim().toLowerCase();
     const filtered = filterProducts(activeQuery);
     renderResults(filtered);
+    trackWebsiteEvent("af_search", {
+      search_term: input.value.trim(),
+      result_count: filtered.length,
+      page_name: "home"
+    });
   });
 
   chips.forEach((chip) => {
@@ -128,7 +135,31 @@ function setupHomePage() {
       input.value = filter;
       activeQuery = filter;
       renderResults(filterProducts(activeQuery));
+      trackWebsiteEvent("category_filter_click", {
+        category: filter,
+        page_name: "home"
+      });
     });
+  });
+
+  results.addEventListener("click", (event) => {
+    const priceBadge = event.target.closest(".price-badge");
+    const viewLink = event.target.closest(".view-link");
+    const card = event.target.closest(".product-card");
+    const productId = card?.dataset.productId;
+    const product = products.find((item) => item.id === productId);
+
+    if (!product) {
+      return;
+    }
+
+    if (priceBadge) {
+      trackWebsiteEvent("price_click", buildProductEventValue(product, { click_area: "price_badge" }));
+    }
+
+    if (viewLink) {
+      trackWebsiteEvent("af_content_view", buildProductEventValue(product, { click_area: "search_result" }));
+    }
   });
 
   function renderResults(items) {
@@ -191,6 +222,18 @@ function setupDetailPage() {
       </div>
     </section>
   `;
+
+  container.addEventListener("click", (event) => {
+    if (event.target.closest(".detail-price")) {
+      trackWebsiteEvent("price_click", buildProductEventValue(product, { click_area: "detail_price" }));
+    }
+
+    if (event.target.closest(".detail-cta")) {
+      trackWebsiteEvent("continue_shopping_click", buildProductEventValue(product, { click_area: "detail_cta" }));
+    }
+  });
+
+  trackWebsiteEvent("af_content_view", buildProductEventValue(product, { page_name: "detail" }));
 }
 
 function filterProducts(query) {
@@ -206,10 +249,10 @@ function filterProducts(query) {
 
 function renderProductCard(product) {
   return `
-    <article class="product-card">
+    <article class="product-card" data-product-id="${product.id}">
       <div class="product-title-row">
         <span class="product-emoji" aria-hidden="true">${product.emoji}</span>
-        <span class="price-badge">${product.price}</span>
+        <button class="price-badge" type="button" aria-label="Track price for ${product.name}">${product.price}</button>
       </div>
       <div>
         <p class="product-meta">${capitalize(product.category)}</p>
@@ -278,6 +321,14 @@ function initializeAppsFlyerLinks() {
   const openInAppUrl = appendCurrentProduct(result.clickURL);
   appLinks.forEach((link) => {
     link.href = openInAppUrl;
+    link.addEventListener("click", () => {
+      trackWebsiteEvent("open_in_app_click", {
+        destination: openInAppUrl,
+        page_name: page,
+        product_id: getSelectedProductId() || "",
+        deep_link_value: page === "detail" ? "product-detail" : "home"
+      });
+    });
   });
 }
 
@@ -294,4 +345,56 @@ function appendCurrentProduct(url) {
 
   const separator = url.includes("?") ? "&" : "?";
   return `${url}${separator}product_id=${encodeURIComponent(productId)}`;
+}
+
+function rememberIdentityFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const appsflyerId = params.get("appsflyer_id");
+  const customerUserId = params.get("customer_user_id");
+
+  if (appsflyerId) {
+    localStorage.setItem("af_appsflyer_id", appsflyerId);
+  }
+
+  if (customerUserId) {
+    localStorage.setItem("af_customer_user_id", customerUserId);
+  }
+}
+
+function buildProductEventValue(product, extras = {}) {
+  return {
+    af_content_id: product.id,
+    af_content_type: product.category,
+    af_content: product.name,
+    af_price: product.price,
+    page_name: page,
+    ...extras
+  };
+}
+
+function trackWebsiteEvent(eventName, eventValue) {
+  if (!appsflyerS2SEndpoint) {
+    return;
+  }
+
+  const payload = {
+    eventName,
+    eventValue,
+    eventCurrency: "INR",
+    appsflyerId: localStorage.getItem("af_appsflyer_id") || "",
+    customerUserId: localStorage.getItem("af_customer_user_id") || "",
+    page,
+    path: window.location.pathname,
+    referrer: document.referrer,
+    eventTime: new Date().toISOString()
+  };
+
+  fetch(appsflyerS2SEndpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload),
+    keepalive: true
+  }).catch(() => {});
 }
